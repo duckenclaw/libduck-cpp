@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CLANG_FORMAT_VERSION: "22.1.8"
+  CLANG_TIDY_VERSION: "22.1.8"
+
+jobs:
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check formatting
+        run: pipx run "clang-format==${CLANG_FORMAT_VERSION}" --dry-run --Werror $(git ls-files '*.cpp' '*.hpp' '*.h')
+
+  lint:
+    name: clang-tidy
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v7
+      - uses: lukka/get-cmake@v4.4.4
+      - uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: lint
+      - name: Install clang-tidy
+        run: pipx install "clang-tidy==${CLANG_TIDY_VERSION}"
+      - name: Build with clang-tidy
+        run: cmake --workflow --preset lint
+
+  build-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "Linux GCC", os: ubuntu-latest, cc: gcc, cxx: g++ }
+          - { name: "Linux Clang", os: ubuntu-latest, cc: clang, cxx: clang++ }
+          - { name: "macOS AppleClang", os: macos-latest, cc: clang, cxx: clang++ }
+          - { name: "Windows MSVC", os: windows-latest, cc: cl, cxx: cl }
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: lukka/get-cmake@v4.4.4
+      - uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: ${{ matrix.os }}-${{ matrix.cc }}
+      - name: Set up MSVC environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1.13.0
+      - name: Configure, build and test
+        run: cmake --workflow --preset dev
+
+  sanitizers:
+    name: ASan + UBSan
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v7
+      - uses: lukka/get-cmake@v4.4.4
+      - uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: asan
+      - name: Configure, build and test
+        run: cmake --workflow --preset asan

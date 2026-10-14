@@ -1,0 +1,10 @@
+add_library(core core/stats.cpp)
+target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_features(core PUBLIC cxx_std_20)
+set_project_warnings(core)
+enable_clang_tidy(core)
+
+add_executable(app main.cpp)
+target_link_libraries(app PRIVATE core)
+set_project_warnings(app)
+enable_clang_tidy(app)
