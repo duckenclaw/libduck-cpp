@@ -51,7 +51,6 @@ jobs:
           - { name: "Linux GCC", os: ubuntu-latest, cc: gcc, cxx: g++ }
           - { name: "Linux Clang", os: ubuntu-latest, cc: clang, cxx: clang++ }
           - { name: "macOS AppleClang", os: macos-latest, cc: clang, cxx: clang++ }
-          - { name: "Windows MSVC", os: windows-latest, cc: cl, cxx: cl }
     env:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
@@ -61,9 +60,6 @@ jobs:
       - uses: hendrikmuhs/ccache-action@v1.2.24
         with:
           key: ${{ matrix.os }}-${{ matrix.cc }}
-      - name: Set up MSVC environment
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1.13.0
       - name: Configure, build and test
         run: cmake --workflow --preset dev
 
@@ -81,3 +77,42 @@ jobs:
           key: asan
       - name: Configure, build and test
         run: cmake --workflow --preset asan
+
+  tsan:
+    name: TSan
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v7
+      - uses: lukka/get-cmake@v4.4.4
+      - uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: tsan
+      # tsan can't map its shadow memory with the runner's default aslr entropy
+      - name: Lower ASLR entropy
+        run: sudo sysctl vm.mmap_rnd_bits=28
+      - name: Configure, build and test
+        run: cmake --workflow --preset tsan
+
+  bench:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v7
+      - uses: lukka/get-cmake@v4.4.4
+      - uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: bench
+      - name: Configure, build and test
+        run: cmake --workflow --preset bench
+      - name: Run benchmarks
+        run: ./build/bench/bench/duck_bench --benchmark_format=json > bench-results.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bench-results
+          path: bench-results.json

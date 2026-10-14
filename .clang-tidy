@@ -23,7 +23,7 @@ Checks: >
   -readability-identifier-length,
   -readability-function-cognitive-complexity
 WarningsAsErrors: '*'
-HeaderFilterRegex: '.*/(src|tests)/.*'
+HeaderFilterRegex: '.*/(include|src|tests|bench)/.*'
 FormatStyle: file
 CheckOptions:
   - key: readability-identifier-naming.ClassCase

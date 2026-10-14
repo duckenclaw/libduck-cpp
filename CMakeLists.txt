@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(
-  cpp_ci_template
+  libduck
   VERSION 0.1.0
-  DESCRIPTION "C++ CMake + Catch2 + GitHub Actions skeleton"
+  DESCRIPTION "Hand-rolled containers, allocators and concurrency primitives"
   LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -19,6 +19,7 @@ option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
 option(ENABLE_SANITIZERS "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(ENABLE_CLANG_TIDY "Run clang-tidy on project sources while compiling" OFF)
 option(BUILD_TESTING "Build the unit tests" ON)
+option(DUCK_BUILD_BENCHMARKS "Build the Google Benchmark suite" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(Ccache)
@@ -26,9 +27,19 @@ include(CompilerWarnings)
 include(Sanitizers)
 include(ClangTidy)
 
-add_subdirectory(src)
+add_library(duck src/version.cpp)
+add_library(duck::duck ALIAS duck)
+target_include_directories(duck PUBLIC include)
+target_compile_features(duck PUBLIC cxx_std_20)
+target_compile_definitions(duck PRIVATE DUCK_VERSION="${PROJECT_VERSION}")
+set_project_warnings(duck)
+enable_clang_tidy(duck)
 
 if(BUILD_TESTING)
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+if(DUCK_BUILD_BENCHMARKS)
+  add_subdirectory(bench)
 endif()

@@ -8,11 +8,11 @@ FetchContent_Declare(
   SYSTEM)
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(unit_tests test_ring_buffer.cpp test_ring_buffer_properties.cpp test_stats.cpp)
-target_link_libraries(unit_tests PRIVATE core Catch2::Catch2WithMain)
-set_project_warnings(unit_tests)
-enable_clang_tidy(unit_tests)
+add_executable(duck_tests test_version.cpp)
+target_link_libraries(duck_tests PRIVATE duck::duck Catch2::Catch2WithMain)
+set_project_warnings(duck_tests)
+enable_clang_tidy(duck_tests)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
-catch_discover_tests(unit_tests)
+catch_discover_tests(duck_tests)
